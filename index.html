@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>Structure-Architect v1.35 - Final Layout Precision</title>
+    <title>Structure-Architect v1.41 - Pure Design & Full Specs</title>
     <style id="editor-ui-style">
         :root {
             --primary: #0D47A1;
@@ -13,7 +13,7 @@
         body, html { margin: 0; padding: 0; height: 100%; font-family: 'Segoe UI', "Yu Gothic", sans-serif; background: var(--bg-gradient); overflow: hidden; }
         #editor-app { display: flex; flex-direction: column; height: 100vh; }
 
-        /* ツールバー：全機能維持 */
+        /* ツールバー：デザインを崩さず、斜体(I)と垂直配置を統合 */
         #toolbar {
             background: var(--toolbar-bg); backdrop-filter: blur(10px);
             border-bottom: 1px solid rgba(0,0,0,0.1); padding: 8px 15px;
@@ -25,40 +25,39 @@
         button.active { background: var(--primary); color: white; }
 
         #main-container { display: flex; flex: 1; overflow: hidden; }
-        #component-panel { width: 210px; background: rgba(255,255,255,0.85); padding: 15px; display: flex; flex-direction: column; gap: 8px; border-right: 1px solid #ddd; overflow-y: auto; }
+
+        /* 左パネル：ご指定のコンポーネント順序を完全再現 */
+        #component-panel {
+            width: 210px; background: rgba(255,255,255,0.85); padding: 15px;
+            display: flex; flex-direction: column; gap: 8px; border-right: 1px solid #ddd; overflow-y: auto;
+        }
         .panel-label { font-size: 10px; font-weight: 800; color: #888; margin-top: 10px; border-bottom: 1px solid #eee; }
 
-        /* キャンバス：初期の padding を排除し、読み込んだアプリに委ねる */
+        /* キャンバス：v1.37の余白感 */
         #canvas-wrapper { flex: 1; overflow-y: auto; padding: 20px; background: rgba(0,0,0,0.05); }
         #editor-canvas {
             margin: 0 auto; width: 100%; max-width: 900px; min-height: 100vh;
             background: white; border-radius: 2px; box-shadow: 0 10px 40px rgba(0,0,0,0.1);
             outline: none; position: relative;
-            /* padding: 40px; ← これが原因だったので削除！ */
         }
 
-        /* 矯正ルールの最小化：アプリの自由度を最大に */
-        #editor-canvas * { box-sizing: border-box !important; }
-        #editor-canvas header, #editor-canvas [style*="position: fixed"] { position: relative !important; width: 100% !important; }
-        #editor-canvas img { max-width: 100% !important; height: auto !important; }
+        /* 構造部品デザイン */
+        .site-header { background: var(--primary); color: white; padding: 40px; text-align: center; }
+        .site-footer { background: #333; color: white; padding: 30px; text-align: center; }
+        .layer-section { border: 2px dashed #4285f4; padding: 25px; margin: 15px 0; background-color: rgba(255,255,255,0.7); border-radius: 10px; }
+        .layout-row { display: flex; gap: 15px; margin: 15px 0; min-height: 50px; }
+        .layout-col { flex: 1; border: 1px dotted #aaa; padding: 10px; min-height: 50px; }
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; table-layout: fixed; }
+        td { border: 1px solid #ccc; padding: 10px; min-width: 50px; min-height: 50px; word-break: break-all; }
+
+        #source-view { display: none; width: 100%; height: 100%; background: #222; color: #eee; padding: 20px; font-family: 'Consolas', monospace; border: none; outline: none; }
+        #ctx-menu { position: fixed; display: none; background: white; border: 1px solid #ccc; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 2000; padding: 5px 0; border-radius: 4px; }
+        .ctx-item { padding: 8px 16px; font-size: 12px; cursor: pointer; }
+        .ctx-item:hover { background: var(--primary); color: white; }
 
         #property-panel { width: 250px; background: white; padding: 20px; border-left: 1px solid #ddd; overflow-y: auto; }
         .prop-item { margin-bottom: 18px; }
         .prop-item label { display: block; font-size: 11px; font-weight: bold; color: #555; margin-bottom: 6px; }
-
-        /* 部品スタイル（v1.31相当を完備） */
-        .site-header { background: var(--primary); color: white; padding: 40px; text-align: center; }
-        .site-footer { background: #333; color: white; padding: 30px; text-align: center; }
-        .layer-section { border: 2px dashed #4285f4; padding: 25px; margin: 15px 0; background-color: rgba(255,255,255,0.7); border-radius: 10px; }
-        .layout-row { display: flex; gap: 15px; margin: 15px 0; }
-        .layout-col { flex: 1; border: 1px dotted #aaa; padding: 10px; min-height: 50px; }
-        table { width: 100%; border-collapse: collapse; margin: 15px 0; }
-        td { border: 1px solid #ccc; padding: 10px; }
-        .custom-embed { background: #f9f9f9; border: 2px dashed #ccc; padding: 15px; text-align: center; }
-
-        #source-view { display: none; width: 100%; height: 100%; background: #222; color: #eee; padding: 20px; font-family: 'Consolas', monospace; border: none; outline: none; }
-        #ctx-menu { position: fixed; display: none; background: white; border: 1px solid #ccc; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 2000; }
-        .ctx-item { padding: 8px 16px; font-size: 12px; cursor: pointer; }
     </style>
     <style id="dynamic-style"></style>
 </head>
@@ -72,7 +71,21 @@
             <div class="tool-group">
                 <button onclick="execCmd('undo')">↩</button>
                 <button onclick="execCmd('redo')">↪</button>
+            </div>
+            <div class="tool-group">
                 <button onclick="execCmd('bold')">B</button>
+                <button onclick="execCmd('italic')"><i>I</i></button> <button onclick="execCmd('underline')">U</button>
+            </div>
+            <div class="tool-group">
+                <button onclick="execCmd('justifyLeft')">左</button>
+                <button onclick="execCmd('justifyCenter')">中</button>
+                <button onclick="execCmd('justifyRight')">右</button>
+            </div>
+            <div class="tool-group"> <button onclick="updateProp('verticalAlign', 'top')" title="上揃え">上</button>
+                <button onclick="updateProp('verticalAlign', 'middle')" title="中央揃え">中</button>
+                <button onclick="updateProp('verticalAlign', 'bottom')" title="下揃え">下</button>
+            </div>
+            <div class="tool-group">
                 <button onclick="createLink()">🔗</button>
                 <button onclick="setPageBg()">背景📷</button>
             </div>
@@ -80,14 +93,18 @@
 
         <div id="main-container">
             <aside id="component-panel">
-                <div class="panel-label">基本</div>
+                <div class="panel-label">レイアウトの基本</div>
+                <button onclick="addComponent('header')">上：ヘッダー</button>
+                <button onclick="addComponent('footer')">下：フッター</button>
+                
+                <div class="panel-label">コンテンツ</div>
                 <button onclick="addComponent('h1')">大見出し</button>
                 <button onclick="addComponent('p')">本文テキスト</button>
-                <button onclick="addComponent('header')">ヘッダー</button>
                 <button onclick="addComponent('layer')">📦 レイヤー</button>
-                <button onclick="addComponent('layout')">2カラム</button>
-                <button onclick="insertTable()">📊 テーブル</button>
-                <button onclick="addComponent('footer')">フッター</button>
+                <button onclick="addComponent('layout')">2カラム(追加可)</button>
+                <button onclick="insertTable()">📊 テーブル初期</button>
+                
+                <div class="panel-label">メディア</div>
                 <button onclick="addComponent('image')">画像</button>
                 <button onclick="addComponent('youtube')">YouTube</button>
                 <button onclick="insertEmbed()">＜＞ 埋め込み</button>
@@ -96,7 +113,7 @@
 
             <main id="canvas-wrapper">
                 <div id="editor-canvas" contenteditable="true"></div>
-                <textarea id="source-view" placeholder="HTMLをここに貼り付け"></textarea>
+                <textarea id="source-view"></textarea>
                 <div id="ctx-menu"></div>
             </main>
 
@@ -107,13 +124,22 @@
                     <input type="color" oninput="execCmd('backColor', this.value)">
                 </div>
                 <div class="prop-item">
+                    <label>垂直配置 (セルの位置)</label>
+                    <select onchange="updateProp('verticalAlign', this.value)" style="width:100%; padding:5px;">
+                        <option value="top">上揃え</option>
+                        <option value="middle" selected>中央揃え</option>
+                        <option value="bottom">下揃え</option>
+                    </select>
+                </div>
+                <div class="prop-item">
                     <label>枠背景色</label>
                     <input type="color" value="#ffffff" oninput="updateProp('backgroundColor', this.value)">
                 </div>
                 <div class="prop-item">
-                    <label>サイズ / 余白</label>
-                    <input type="number" value="16" oninput="updateProp('fontSize', this.value + 'px')">
-                    <input type="number" value="25" oninput="updateProp('padding', this.value + 'px')">
+                    <label>サイズ / 余白 / 高さ</label>
+                    <input type="number" value="16" oninput="updateProp('fontSize', this.value + 'px')" title="文字サイズ">
+                    <input type="number" value="15" oninput="updateProp('padding', this.value + 'px')" title="余白">
+                    <input type="number" placeholder="高さ(px)" oninput="updateProp('height', this.value + 'px')" title="要素の高さ">
                 </div>
             </aside>
         </div>
@@ -136,77 +162,71 @@
                 document.getElementById('btn-edit').classList.add('active');
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(sourceView.value, 'text/html');
-                
-                // CSSスコープ処理
                 let rawCss = "";
                 doc.querySelectorAll('style').forEach(s => rawCss += s.textContent);
                 dynamicStyle.setAttribute('data-original-css', rawCss);
-                
-                const scopedCss = rawCss.replace(/([^\r\n,{}]+)(?=[^{}]*{)/g, m => 
-                    m.split(',').map(s => {
-                        let ts = s.trim();
-                        if(!ts || ts.startsWith('@')) return ts;
-                        if(ts === 'body' || ts === 'html') return '#editor-canvas';
-                        return '#editor-canvas ' + ts;
-                    }).join(', ')
-                );
-                dynamicStyle.textContent = scopedCss;
-
-                // コンテンツの反映
                 if (doc.body.innerHTML.trim() !== "") canvas.innerHTML = doc.body.innerHTML;
-
-                // JSの実行（読み上げ機能等）
-                const scripts = doc.querySelectorAll('script');
-                scripts.forEach(s => {
-                    const newScript = document.createElement('script');
-                    newScript.textContent = s.textContent;
-                    document.body.appendChild(newScript);
-                    if (typeof renderCurrentView === 'function') renderCurrentView();
-                    document.body.removeChild(newScript);
-                });
-
-                // ★【追加】背景色が設定されている場合、Canvasのデフォルト背景を隠す
-                if(rawCss.includes('background')){ canvas.style.background = 'transparent'; }
-
                 canvas.style.display = 'block'; sourceView.style.display = 'none';
             }
         }
 
-        // 機能維持
         function execCmd(cmd, val = null) { document.execCommand(cmd, false, val); }
+
         function addComponent(type) {
             let h = '';
             if(type==='h1') h='<h1>見出し</h1>';
             if(type==='p') h='<p>テキスト...</p>';
             if(type==='header') h='<header class="site-header"><h1>Header</h1></header>';
             if(type==='footer') h='<footer class="site-footer"><p>© 2026</p></footer>';
-            if(type==='layer') h='<section class="layer-section"><h3>Layer</h3><p>内容</p></section>';
-            if(type==='layout') h='<div class="layout-row"><div class="layout-col">左</div><div class="layout-col">右</div></div>';
+            if(type==='layer') h='<section class="layer-section"><h3>Layer</h3><p>Content</p></section>';
+            if(type==='layout') h='<div class="layout-row"><div class="layout-col">カラム1</div><div class="layout-col">カラム2</div></div>';
             if(type==='btn') h='<a href="#" style="display:inline-block;padding:12px 24px;background:#0D47A1;color:white;text-decoration:none;border-radius:5px;">Button</a>';
-            if(type==='image') { const u=prompt("URL:"); if(u) h=`<img src="${u}">`; }
+            if(type==='image') { const u=prompt("URL:"); if(u) h=`<img src="${u}" style="max-width:100%;">`; }
             if(type==='youtube') { const id=prompt("YouTube ID:"); if(id) h=`<iframe width="100%" height="315" src="https://www.youtube.com/embed/${id}" frameborder="0" allowfullscreen></iframe>`; }
             if(h) execCmd('insertHTML', h + '<p><br></p>');
         }
-        function insertTable() { execCmd('insertHTML', '<table border="1" style="width:100%;border-collapse:collapse;"><tr><td><br></td><td><br></td></tr></table><p><br></p>'); }
-        function insertEmbed() { const c=prompt("コード:"); if(c) execCmd('insertHTML', `<div class="custom-embed">${c}</div><p><br></p>`); }
-        function setPageBg() { const u=prompt("背景URL:"); if(u) canvas.style.backgroundImage = `url('${u}')`; }
-        function createLink() { const u=prompt("リンクURL:"); if(u) execCmd('createLink', u); }
 
+        function insertTable() { execCmd('insertHTML', '<table border="1"><tr><td>セル</td><td>セル</td></tr></table><p><br></p>'); }
+        function insertEmbed() { const c=prompt("Embed code:"); if(c) execCmd('insertHTML', `<div class="custom-embed">${c}</div><p><br></p>`); }
+        function setPageBg() { const u=prompt("Background URL:"); if(u) canvas.style.backgroundImage = `url('${u}')`; }
+        function createLink() { const u=prompt("URL:"); if(u) execCmd('createLink', u); }
+
+        // 右クリック機能（行・列の削除・詰めロジック完備）
         canvas.addEventListener('contextmenu', (e) => {
             e.preventDefault();
             let html = '';
             const td = e.target.closest('td');
+            const row = e.target.closest('.layout-row');
+
             if (td) {
-                html += `<div class="ctx-item" onclick="this.closest('tr').after(this.closest('tr').cloneNode(true))">行を下に追加</div>`;
-                html += `<div class="ctx-item" style="color:red;" onclick="confirm('削除しますか？') && e.target.closest('table').remove()">❌ テーブル削除</div>`;
+                selectedElement = td;
+                html += `<div class="ctx-item" onclick="updateProp('textAlign', 'center'); updateProp('verticalAlign', 'middle');">🎯 中央の中央に配置</div>`;
+                html += `<div class="ctx-item" onclick="addRow()">➕ 行を追加</div>`;
+                html += `<div class="ctx-item" onclick="addCol()">➕ 列を追加</div>`;
+                html += `<div class="ctx-item" style="color:orange;" onclick="deleteRow()">➖ 行を削除</div>`;
+                html += `<div class="ctx-item" style="color:orange;" onclick="deleteCol()">➖ 列を削除</div>`;
+                html += `<div class="ctx-item" style="color:red;" onclick="selectedElement.closest('table').remove()">❌ テーブル削除</div>`;
+            } else if (row) {
+                selectedElement = row;
+                html += `<div class="ctx-item" onclick="addColumnToRow()">カラムを追加</div>`;
+                html += `<div class="ctx-item" style="color:red;" onclick="selectedElement.remove()">🗑 列ごと削除</div>`;
             } else if (e.target !== canvas) {
-                html += `<div class="ctx-item" style="color:red;" onclick="e.target.remove()">🗑 消去</div>`;
+                selectedElement = e.target;
+                html += `<div class="ctx-item" style="color:red;" onclick="selectedElement.remove()">🗑 消去</div>`;
             }
+
             if (html) {
                 ctxMenu.innerHTML = html; ctxMenu.style.display='block';
                 ctxMenu.style.left=e.pageX+'px'; ctxMenu.style.top=e.pageY+'px';
             }
         });
+
+        function addRow() { const tr = selectedElement.closest('tr'); const n = tr.cloneNode(true); n.querySelectorAll('td').forEach(t => t.innerHTML = '<br>'); tr.after(n); }
+        function addCol() { const table = selectedElement.closest('table'); const idx = selectedElement.cellIndex; Array.from(table.rows).forEach(r => { const c = r.insertCell(idx + 1); c.innerHTML = '<br>'; c.style.border = '1px solid #ccc'; c.style.padding = '10px'; }); }
+        function deleteRow() { if(confirm('行を削除しますか？')) selectedElement.closest('tr').remove(); }
+        function deleteCol() { const idx = selectedElement.cellIndex; if(confirm('列を削除しますか？')) Array.from(selectedElement.closest('table').rows).forEach(r => r.deleteCell(idx)); }
+        function addColumnToRow() { const newCol = document.createElement('div'); newCol.className = 'layout-col'; newCol.innerHTML = '新規カラム'; selectedElement.appendChild(newCol); }
+
         document.addEventListener('click', () => ctxMenu.style.display='none');
         canvas.addEventListener('click', (e) => {
             if (selectedElement) selectedElement.style.outline = 'none';
