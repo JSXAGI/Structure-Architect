@@ -2,62 +2,72 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>Structure-Architect v1.41 - Pure Design & Full Specs</title>
+    <title>Structure-Architect v1.60 - Master Edition</title>
     <style id="editor-ui-style">
         :root {
             --primary: #0D47A1;
-            --bg-gradient: linear-gradient(135deg, #f5f7fa 0%, #0163ff 100%);
+            --accent: #E8380D;
+            --bg-workspace: #f0f2f5;
             --toolbar-bg: rgba(255, 255, 255, 0.98);
+            --panel-bg: #ffffff;
         }
 
-        body, html { margin: 0; padding: 0; height: 100%; font-family: 'Segoe UI', "Yu Gothic", sans-serif; background: var(--bg-gradient); overflow: hidden; }
+        /* 1. 見えない部分：エディタ全体の骨格 */
+        body, html { margin: 0; padding: 0; height: 100%; font-family: 'Segoe UI', "Yu Gothic", sans-serif; background: var(--bg-workspace); overflow: hidden; }
         #editor-app { display: flex; flex-direction: column; height: 100vh; }
 
-        /* ツールバー：デザインを崩さず、斜体(I)と垂直配置を統合 */
+        /* 2. 見える部分：アクセスツールバー */
         #toolbar {
-            background: var(--toolbar-bg); backdrop-filter: blur(10px);
-            border-bottom: 1px solid rgba(0,0,0,0.1); padding: 8px 15px;
-            display: flex; gap: 10px; flex-wrap: wrap; z-index: 1000; box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            background: var(--toolbar-bg); border-bottom: 1px solid #ccc;
+            padding: 8px 15px; display: flex; gap: 10px; flex-wrap: wrap; z-index: 2000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1); align-items: center;
         }
         .tool-group { display: flex; gap: 4px; border-right: 1px solid #ddd; padding-right: 10px; align-items: center; }
-        button { padding: 6px 12px; border: 1px solid #ccc; background: white; cursor: pointer; border-radius: 4px; font-size: 12px; font-weight: 600; }
-        button:hover { background: #e3f2fd; border-color: var(--primary); }
-        button.active { background: var(--primary); color: white; }
+        .tool-group:last-child { border-right: none; }
+        
+        button.ui-btn { 
+            padding: 6px 12px; border: 1px solid #ccc; background: white; cursor: pointer; 
+            border-radius: 4px; font-size: 12px; font-weight: 600; transition: 0.2s;
+        }
+        button.ui-btn:hover { background: #e3f2fd; border-color: var(--primary); }
+        button.ui-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
 
         #main-container { display: flex; flex: 1; overflow: hidden; }
 
-        /* 左パネル：ご指定のコンポーネント順序を完全再現 */
+        /* 3. 見える部分：左コンポーネント（パレット） */
         #component-panel {
-            width: 210px; background: rgba(255,255,255,0.85); padding: 15px;
-            display: flex; flex-direction: column; gap: 8px; border-right: 1px solid #ddd; overflow-y: auto;
+            width: 200px; background: var(--panel-bg); border-right: 1px solid #ddd;
+            padding: 15px; display: flex; flex-direction: column; gap: 8px; overflow-y: auto;
         }
-        .panel-label { font-size: 10px; font-weight: 800; color: #888; margin-top: 10px; border-bottom: 1px solid #eee; }
+        .panel-label { font-size: 10px; font-weight: 800; color: #888; margin-top: 10px; border-bottom: 1px solid #eee; text-transform: uppercase; }
 
-        /* キャンバス：v1.37の余白感 */
-        #canvas-wrapper { flex: 1; overflow-y: auto; padding: 20px; background: rgba(0,0,0,0.05); }
+        /* 4. 見える部分：真ん中のキャンバス */
+        #canvas-wrapper { 
+            flex: 1; overflow: auto; padding: 40px; display: flex; justify-content: center; 
+            background-image: radial-gradient(#d1d1d1 1px, transparent 1px); background-size: 20px 20px;
+        }
         #editor-canvas {
-            margin: 0 auto; width: 100%; max-width: 900px; min-height: 100vh;
-            background: white; border-radius: 2px; box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-            outline: none; position: relative;
+            background: white; min-height: 100vh; width: 100%; max-width: 900px;
+            box-shadow: 0 0 30px rgba(0,0,0,0.2); outline: none; position: relative;
+            transform: translate(0, 0); /* Fixed要素の閉じ込めバイパス */
         }
+        /* 編集中の干渉防止 */
+        #editor-canvas a, #editor-canvas button:not(.ui-btn) { pointer-events: none; }
 
-        /* 構造部品デザイン */
-        .site-header { background: var(--primary); color: white; padding: 40px; text-align: center; }
-        .site-footer { background: #333; color: white; padding: 30px; text-align: center; }
-        .layer-section { border: 2px dashed #4285f4; padding: 25px; margin: 15px 0; background-color: rgba(255,255,255,0.7); border-radius: 10px; }
-        .layout-row { display: flex; gap: 15px; margin: 15px 0; min-height: 50px; }
-        .layout-col { flex: 1; border: 1px dotted #aaa; padding: 10px; min-height: 50px; }
-        table { width: 100%; border-collapse: collapse; margin: 15px 0; table-layout: fixed; }
-        td { border: 1px solid #ccc; padding: 10px; min-width: 50px; min-height: 50px; word-break: break-all; }
+        #source-view { display: none; width: 100%; height: 100%; background: #1e1e1e; color: #d4d4d4; padding: 20px; font-family: 'Consolas', monospace; border: none; font-size: 14px; line-height: 1.5; outline: none; }
 
-        #source-view { display: none; width: 100%; height: 100%; background: #222; color: #eee; padding: 20px; font-family: 'Consolas', monospace; border: none; outline: none; }
-        #ctx-menu { position: fixed; display: none; background: white; border: 1px solid #ccc; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 2000; padding: 5px 0; border-radius: 4px; }
-        .ctx-item { padding: 8px 16px; font-size: 12px; cursor: pointer; }
+        /* 5. 見える部分：右プロパティ詳細 */
+        #property-panel { width: 260px; background: var(--panel-bg); border-left: 1px solid #ddd; padding: 20px; overflow-y: auto; }
+        .prop-item { margin-bottom: 20px; }
+        .prop-item label { display: block; font-size: 11px; font-weight: bold; color: #555; margin-bottom: 8px; }
+        .color-row { display: flex; gap: 10px; }
+        .color-box { flex: 1; text-align: center; }
+        .color-box span { font-size: 9px; color: #999; display: block; }
+        
+        /* 特殊：右クリックメニュー */
+        #ctx-menu { position: fixed; display: none; background: white; border: 1px solid #ccc; box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 3000; border-radius: 4px; padding: 5px 0; min-width: 180px; }
+        .ctx-item { padding: 10px 15px; font-size: 12px; cursor: pointer; transition: 0.1s; }
         .ctx-item:hover { background: var(--primary); color: white; }
-
-        #property-panel { width: 250px; background: white; padding: 20px; border-left: 1px solid #ddd; overflow-y: auto; }
-        .prop-item { margin-bottom: 18px; }
-        .prop-item label { display: block; font-size: 11px; font-weight: bold; color: #555; margin-bottom: 6px; }
     </style>
     <style id="dynamic-style"></style>
 </head>
@@ -65,63 +75,68 @@
     <div id="editor-app">
         <header id="toolbar">
             <div class="tool-group">
-                <button onclick="switchTab('edit')" id="btn-edit" class="active">デザイン</button>
-                <button onclick="switchTab('html')" id="btn-html">ソースコード</button>
+                <button class="ui-btn active" onclick="switchTab('edit')" id="btn-edit">デザイン</button>
+                <button class="ui-btn" onclick="switchTab('html')" id="btn-html">ソースコード</button>
             </div>
             <div class="tool-group">
-                <button onclick="execCmd('undo')">↩</button>
-                <button onclick="execCmd('redo')">↪</button>
+                <button class="ui-btn" onclick="manualUndo()">↩ 戻る</button>
+                <button class="ui-btn" onclick="manualRedo()">↪ 進む</button>
             </div>
             <div class="tool-group">
-                <button onclick="execCmd('bold')">B</button>
-                <button onclick="execCmd('italic')"><i>I</i></button> <button onclick="execCmd('underline')">U</button>
+                <button class="ui-btn" onclick="execCmd('bold')">B</button>
+                <button class="ui-btn" onclick="execCmd('italic')">I</button>
+                <button class="ui-btn" onclick="execCmd('underline')">U</button>
             </div>
             <div class="tool-group">
-                <button onclick="execCmd('justifyLeft')">左</button>
-                <button onclick="execCmd('justifyCenter')">中</button>
-                <button onclick="execCmd('justifyRight')">右</button>
+                <button class="ui-btn" onclick="execCmd('justifyLeft')">左</button>
+                <button class="ui-btn" onclick="execCmd('justifyCenter')">中</button>
+                <button class="ui-btn" onclick="execCmd('justifyRight')">右</button>
             </div>
-            <div class="tool-group"> <button onclick="updateProp('verticalAlign', 'top')" title="上揃え">上</button>
-                <button onclick="updateProp('verticalAlign', 'middle')" title="中央揃え">中</button>
-                <button onclick="updateProp('verticalAlign', 'bottom')" title="下揃え">下</button>
-            </div>
-            <div class="tool-group">
-                <button onclick="createLink()">🔗</button>
-                <button onclick="setPageBg()">背景📷</button>
-            </div>
+            <button class="ui-btn" onclick="createLink()">🔗</button>
+            <button class="ui-btn" onclick="setPageBg()">背景画像</button>
         </header>
 
         <div id="main-container">
             <aside id="component-panel">
                 <div class="panel-label">レイアウトの基本</div>
-                <button onclick="addComponent('header')">上：ヘッダー</button>
-                <button onclick="addComponent('footer')">下：フッター</button>
-                
+                <button class="ui-btn" onclick="addComponent('header')">上：ヘッダー</button>
+                <button class="ui-btn" onclick="addComponent('footer')">下：フッター</button>
                 <div class="panel-label">コンテンツ</div>
-                <button onclick="addComponent('h1')">大見出し</button>
-                <button onclick="addComponent('p')">本文テキスト</button>
-                <button onclick="addComponent('layer')">📦 レイヤー</button>
-                <button onclick="addComponent('layout')">2カラム(追加可)</button>
-                <button onclick="insertTable()">📊 テーブル初期</button>
-                
+                <button class="ui-btn" onclick="addComponent('h1')">大見出し</button>
+                <button class="ui-btn" onclick="addComponent('p')">本文テキスト</button>
+                <button class="ui-btn" onclick="addComponent('layer')">📦 レイヤー</button>
+                <button class="ui-btn" onclick="addComponent('layout')">2カラム(追加可)</button>
+                <button class="ui-btn" onclick="insertTable()">📊 テーブル初期</button>
                 <div class="panel-label">メディア</div>
-                <button onclick="addComponent('image')">画像</button>
-                <button onclick="addComponent('youtube')">YouTube</button>
-                <button onclick="insertEmbed()">＜＞ 埋め込み</button>
-                <button onclick="addComponent('btn')">ボタンリンク</button>
+                <button class="ui-btn" onclick="addComponent('image')">画像(URL)</button>
+                <button class="ui-btn" onclick="addComponent('youtube')">YouTube</button>
+                <button class="ui-btn" onclick="insertEmbed()">＜＞ 埋め込み</button>
+                <button class="ui-btn" onclick="addComponent('btn')">ボタンリンク</button>
             </aside>
 
             <main id="canvas-wrapper">
                 <div id="editor-canvas" contenteditable="true"></div>
-                <textarea id="source-view"></textarea>
+                <textarea id="source-view" spellcheck="false"></textarea>
                 <div id="ctx-menu"></div>
             </main>
 
             <aside id="property-panel">
                 <div class="prop-item">
-                    <label>文字 / マーカー色</label>
-                    <input type="color" oninput="execCmd('foreColor', this.value)">
-                    <input type="color" oninput="execCmd('backColor', this.value)">
+                    <label>文字色 / マーカー</label>
+                    <div class="color-row">
+                        <div class="color-box">
+                            <input type="color" oninput="execCmd('foreColor', this.value)" style="width:100%;">
+                            <span>文字</span>
+                        </div>
+                        <div class="color-box">
+                            <input type="color" value="#ffff00" oninput="execCmd('backColor', this.value)" style="width:100%;">
+                            <span>マーカー</span>
+                        </div>
+                    </div>
+                </div>
+                <div id="text-edit-group" class="prop-item" style="display:none;">
+                    <label>選択中の文字変更 (AlphaEdit流)</label>
+                    <textarea id="prop-text-input" style="width:100%; height:60px; font-size:12px; padding:5px;" oninput="updateSelectedText(this.value)"></textarea>
                 </div>
                 <div class="prop-item">
                     <label>垂直配置 (セルの位置)</label>
@@ -132,14 +147,16 @@
                     </select>
                 </div>
                 <div class="prop-item">
-                    <label>枠背景色</label>
-                    <input type="color" value="#ffffff" oninput="updateProp('backgroundColor', this.value)">
+                    <label>枠背景色 (要素全体)</label>
+                    <input type="color" value="#ffffff" oninput="updateProp('backgroundColor', this.value)" style="width:100%;">
                 </div>
                 <div class="prop-item">
                     <label>サイズ / 余白 / 高さ</label>
-                    <input type="number" value="16" oninput="updateProp('fontSize', this.value + 'px')" title="文字サイズ">
-                    <input type="number" value="15" oninput="updateProp('padding', this.value + 'px')" title="余白">
-                    <input type="number" placeholder="高さ(px)" oninput="updateProp('height', this.value + 'px')" title="要素の高さ">
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px;">
+                        <input type="number" value="16" oninput="updateProp('fontSize', this.value + 'px')" title="文字サイズ">
+                        <input type="number" value="15" oninput="updateProp('padding', this.value + 'px')" title="内側余白">
+                        <input type="number" placeholder="高さpx" oninput="updateProp('height', this.value + 'px')" style="grid-column: span 2;">
+                    </div>
                 </div>
             </aside>
         </div>
@@ -151,91 +168,142 @@
         const dynamicStyle = document.getElementById('dynamic-style');
         const ctxMenu = document.getElementById('ctx-menu');
         let selectedElement = null;
+        let history = [];
+        let historyStep = -1;
 
+        // --- 内部ロジック：履歴管理 ---
+        function saveHistory() {
+            historyStep++;
+            if (historyStep < history.length) history.length = historyStep;
+            history.push(canvas.innerHTML);
+            if (history.length > 50) { history.shift(); historyStep--; }
+        }
+        function manualUndo() { if (historyStep > 0) { historyStep--; canvas.innerHTML = history[historyStep]; } }
+        function manualRedo() { if (historyStep < history.length - 1) { historyStep++; canvas.innerHTML = history[historyStep]; } }
+
+        // --- 内部ロジック：CSS隔離エンジン (AlphaEdit思想) ---
+        function scopeCSS(css) {
+            css = css.replace(/\/\*[\s\S]*?\*\//g, '');
+            // 演出で見えないものを強制可視化 (SEOindex対策)
+            css = css.replace(/opacity\s*:\s*0/g, 'opacity: 1');
+            css = css.replace(/transform\s*:\s*translateY\(.*?\)/g, 'transform: none');
+
+            return css.replace(/([^\r\n,{}]+)(,(?=[^}]*{)|\s*\{)/g, function(match, selector, rest) {
+                if (selector.indexOf('@') !== -1 || /^[0-9.]+%$/.test(selector.trim())) return match;
+                const scoped = selector.split(',').map(s => {
+                    let ts = s.trim();
+                    if (!ts) return '';
+                    if (ts === 'body' || ts === 'html' || ts === ':root') return '#editor-canvas';
+                    return '#editor-canvas ' + ts;
+                }).join(', ');
+                return scoped + rest;
+            });
+        }
+
+        // --- 見える部分：タブ切り替え (デザイナー ⇔ ソース) ---
         function switchTab(mode) {
-            document.querySelectorAll('#toolbar button').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('#toolbar .ui-btn').forEach(b => b.classList.remove('active'));
             if (mode === 'html') {
                 document.getElementById('btn-html').classList.add('active');
-                sourceView.value = `<!DOCTYPE html>\n<html>\n<head>\n<style>\n${dynamicStyle.getAttribute('data-original-css') || ''}\n</style>\n</head>\n<body>\n${canvas.innerHTML.trim()}\n</body>\n</html>`;
+                const css = dynamicStyle.getAttribute('data-original-css') || '';
+                sourceView.value = `<!DOCTYPE html>\n<html>\n<head>\n<style>\n${css}</style>\n</head>\n<body>\n${canvas.innerHTML.trim()}\n</body>\n</html>`;
                 canvas.style.display = 'none'; sourceView.style.display = 'block';
             } else {
                 document.getElementById('btn-edit').classList.add('active');
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(sourceView.value, 'text/html');
-                let rawCss = "";
-                doc.querySelectorAll('style').forEach(s => rawCss += s.textContent);
-                dynamicStyle.setAttribute('data-original-css', rawCss);
-                if (doc.body.innerHTML.trim() !== "") canvas.innerHTML = doc.body.innerHTML;
+                const html = sourceView.value;
+                let css = '';
+                const cleanBody = html.replace(/<style[^>]*>([\s\S]*?)<\/style>/gi, (m, c) => { css += c + '\n'; return ''; });
+                
+                if (css) {
+                    dynamicStyle.setAttribute('data-original-css', css);
+                    dynamicStyle.innerHTML = scopeCSS(css);
+                }
+                const bodyMatch = cleanBody.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+                canvas.innerHTML = bodyMatch ? bodyMatch[1] : cleanBody;
                 canvas.style.display = 'block'; sourceView.style.display = 'none';
+                saveHistory();
             }
         }
 
-        function execCmd(cmd, val = null) { document.execCommand(cmd, false, val); }
+        // --- コンポーネント操作 ---
+        function execCmd(cmd, val = null) { document.execCommand(cmd, false, val); saveHistory(); }
 
         function addComponent(type) {
             let h = '';
-            if(type==='h1') h='<h1>見出し</h1>';
-            if(type==='p') h='<p>テキスト...</p>';
-            if(type==='header') h='<header class="site-header"><h1>Header</h1></header>';
-            if(type==='footer') h='<footer class="site-footer"><p>© 2026</p></footer>';
-            if(type==='layer') h='<section class="layer-section"><h3>Layer</h3><p>Content</p></section>';
-            if(type==='layout') h='<div class="layout-row"><div class="layout-col">カラム1</div><div class="layout-col">カラム2</div></div>';
-            if(type==='btn') h='<a href="#" style="display:inline-block;padding:12px 24px;background:#0D47A1;color:white;text-decoration:none;border-radius:5px;">Button</a>';
+            if(type==='h1') h='<h1>見出しを入力</h1>';
+            if(type==='p') h='<p>テキストを入力...</p>';
+            if(type==='header') h='<header style="background:#000;color:white;padding:20px;text-align:center;"><img src="HEADER.png" style="max-height:80px;"></header>';
+            if(type==='footer') h='<footer style="background:#333;color:white;padding:20px;text-align:center;">&copy; 2026 MARIKO</footer>';
+            if(type==='layer') h='<div style="margin:20px;padding:20px;background:rgba(255,255,255,0.8);border-radius:10px;box-shadow:0 5px 15px rgba(0,0,0,0.1);"><h3>新規レイヤー</h3><p>ここに内容を配置</p></div>';
+            if(type==='layout') h='<div style="display:flex;gap:15px;margin:15px 0;"><div style="flex:1;border:1px dashed #ccc;padding:10px;">左カラム</div><div style="flex:1;border:1px dashed #ccc;padding:10px;">右カラム</div></div>';
+            if(type==='btn') h='<a href="#" style="display:inline-block;padding:10px 20px;background:#E8380D;color:white;text-decoration:none;border-radius:5px;">ボタン</a>';
             if(type==='image') { const u=prompt("URL:"); if(u) h=`<img src="${u}" style="max-width:100%;">`; }
-            if(type==='youtube') { const id=prompt("YouTube ID:"); if(id) h=`<iframe width="100%" height="315" src="https://www.youtube.com/embed/${id}" frameborder="0" allowfullscreen></iframe>`; }
-            if(h) execCmd('insertHTML', h + '<p><br></p>');
+            if(type==='youtube') { const id=prompt("YouTube ID:"); if(id) h=`<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;"><iframe style="position:absolute;top:0;left:0;width:100%;height:100%;" src="https://www.youtube.com/embed/${id}" frameborder="0" allowfullscreen></iframe></div>`; }
+            
+            if(h) {
+                const wrapper = document.createElement('div');
+                wrapper.innerHTML = h + '<p><br></p>';
+                canvas.appendChild(wrapper);
+                saveHistory();
+            }
         }
 
-        function insertTable() { execCmd('insertHTML', '<table border="1"><tr><td>セル</td><td>セル</td></tr></table><p><br></p>'); }
-        function insertEmbed() { const c=prompt("Embed code:"); if(c) execCmd('insertHTML', `<div class="custom-embed">${c}</div><p><br></p>`); }
-        function setPageBg() { const u=prompt("Background URL:"); if(u) canvas.style.backgroundImage = `url('${u}')`; }
-        function createLink() { const u=prompt("URL:"); if(u) execCmd('createLink', u); }
+        function insertTable() { execCmd('insertHTML', '<table style="width:100%;border-collapse:collapse;margin:10px 0;" border="1"><tr><td style="padding:10px;">セル</td><td style="padding:10px;">セル</td></tr></table><p><br></p>'); }
+        function insertEmbed() { const c=prompt("埋め込みコード:"); if(c) { execCmd('insertHTML', `<div>${c}</div><p><br></p>`); } }
+        function setPageBg() { const u=prompt("背景画像URL:"); if(u) { canvas.style.backgroundImage = `url('${u}')`; canvas.style.backgroundSize = 'cover'; canvas.style.backgroundAttachment = 'fixed'; saveHistory(); } }
+        function createLink() { const u=prompt("リンクURL:"); if(u) execCmd('createLink', u); }
 
-        // 右クリック機能（行・列の削除・詰めロジック完備）
+        // --- 右クリックメニュー (検証画像の問題を解消) ---
         canvas.addEventListener('contextmenu', (e) => {
             e.preventDefault();
-            let html = '';
-            const td = e.target.closest('td');
-            const row = e.target.closest('.layout-row');
-
-            if (td) {
-                selectedElement = td;
-                html += `<div class="ctx-item" onclick="updateProp('textAlign', 'center'); updateProp('verticalAlign', 'middle');">🎯 中央の中央に配置</div>`;
-                html += `<div class="ctx-item" onclick="addRow()">➕ 行を追加</div>`;
-                html += `<div class="ctx-item" onclick="addCol()">➕ 列を追加</div>`;
-                html += `<div class="ctx-item" style="color:orange;" onclick="deleteRow()">➖ 行を削除</div>`;
-                html += `<div class="ctx-item" style="color:orange;" onclick="deleteCol()">➖ 列を削除</div>`;
-                html += `<div class="ctx-item" style="color:red;" onclick="selectedElement.closest('table').remove()">❌ テーブル削除</div>`;
-            } else if (row) {
-                selectedElement = row;
-                html += `<div class="ctx-item" onclick="addColumnToRow()">カラムを追加</div>`;
-                html += `<div class="ctx-item" style="color:red;" onclick="selectedElement.remove()">🗑 列ごと削除</div>`;
-            } else if (e.target !== canvas) {
-                selectedElement = e.target;
-                html += `<div class="ctx-item" style="color:red;" onclick="selectedElement.remove()">🗑 消去</div>`;
+            const target = e.target;
+            if (target === canvas) return;
+            
+            selectedElement = target;
+            let html = `<div class="ctx-item" onclick="cloneTarget()">👯 この要素だけを複製</div>`;
+            if(target.closest('td')) {
+                html += `<div class="ctx-item" onclick="addRow()">➕ 行を下に追加</div>`;
             }
-
-            if (html) {
-                ctxMenu.innerHTML = html; ctxMenu.style.display='block';
-                ctxMenu.style.left=e.pageX+'px'; ctxMenu.style.top=e.pageY+'px';
-            }
+            html += `<div class="ctx-item" style="color:red;" onclick="deleteTarget()">🗑 消去</div>`;
+            
+            ctxMenu.innerHTML = html; ctxMenu.style.display='block';
+            ctxMenu.style.left=e.pageX+'px'; ctxMenu.style.top=e.pageY+'px';
         });
 
-        function addRow() { const tr = selectedElement.closest('tr'); const n = tr.cloneNode(true); n.querySelectorAll('td').forEach(t => t.innerHTML = '<br>'); tr.after(n); }
-        function addCol() { const table = selectedElement.closest('table'); const idx = selectedElement.cellIndex; Array.from(table.rows).forEach(r => { const c = r.insertCell(idx + 1); c.innerHTML = '<br>'; c.style.border = '1px solid #ccc'; c.style.padding = '10px'; }); }
-        function deleteRow() { if(confirm('行を削除しますか？')) selectedElement.closest('tr').remove(); }
-        function deleteCol() { const idx = selectedElement.cellIndex; if(confirm('列を削除しますか？')) Array.from(selectedElement.closest('table').rows).forEach(r => r.deleteCell(idx)); }
-        function addColumnToRow() { const newCol = document.createElement('div'); newCol.className = 'layout-col'; newCol.innerHTML = '新規カラム'; selectedElement.appendChild(newCol); }
+        // 修正：全体をクローンせず、選択した要素だけを狙い撃ち
+        window.cloneTarget = () => {
+            if(selectedElement) {
+                const clone = selectedElement.cloneNode(true);
+                clone.style.outline = 'none';
+                selectedElement.after(clone);
+                saveHistory();
+                ctxMenu.style.display = 'none';
+            }
+        };
 
-        document.addEventListener('click', () => ctxMenu.style.display='none');
+        window.deleteTarget = () => { if(selectedElement && confirm('削除しますか？')) { selectedElement.remove(); saveHistory(); ctxMenu.style.display='none'; } };
+        window.addRow = () => { const tr = selectedElement.closest('tr'); const n = tr.cloneNode(true); tr.after(n); saveHistory(); ctxMenu.style.display='none'; };
+
+        // --- 左クリック：プロパティ連動 ---
         canvas.addEventListener('click', (e) => {
             if (selectedElement) selectedElement.style.outline = 'none';
             if (e.target !== canvas) {
                 selectedElement = e.target;
                 selectedElement.style.outline = '2px dashed var(--primary)';
+                const editGroup = document.getElementById('text-edit-group');
+                if (['H1','H2','H3','P','A','TD','SPAN','STRONG','BUTTON'].includes(selectedElement.tagName)) {
+                    editGroup.style.display = 'block';
+                    document.getElementById('prop-text-input').value = selectedElement.innerText;
+                } else { editGroup.style.display = 'none'; }
             }
+            ctxMenu.style.display = 'none';
         });
-        function updateProp(p, v) { if (selectedElement) selectedElement.style[p] = v; }
+
+        function updateSelectedText(v) { if(selectedElement) selectedElement.innerText = v; }
+        function updateProp(p, v) { if (selectedElement) { selectedElement.style[p] = v; saveHistory(); } }
+        
+        document.addEventListener('click', (e) => { if(!ctxMenu.contains(e.target)) ctxMenu.style.display='none'; });
+        window.onload = saveHistory;
     </script>
 </body>
 </html>
