@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>Structure-Architect v1.60 - Master Edition</title>
+    <title>Structure-Architect v1.60 - Master Edition (Nested Layer Fix)</title>
     <style id="editor-ui-style">
         :root {
             --primary: #0D47A1;
@@ -228,23 +228,42 @@
         // --- コンポーネント操作 ---
         function execCmd(cmd, val = null) { document.execCommand(cmd, false, val); saveHistory(); }
 
+        // 改良：スマートインサート関数（選択中のレイヤーや要素の内部に挿入可能にする）
+        function insertElementSmart(htmlContent) {
+            const wrapper = document.createElement('div');
+            wrapper.innerHTML = htmlContent + '<p><br></p>';
+            
+            // 選択された要素がある場合、それがコンテナ（レイヤーやカラム、キャンバス自身など）か判定
+            if (selectedElement && selectedElement !== canvas) {
+                // 選択されているのがDIV（レイヤーなど）やTD、SECTIONなどの「入れ物」なら、その中に直接追加
+                if (['DIV', 'TD', 'SECTION', 'ARTICLE', 'HEADER', 'FOOTER'].includes(selectedElement.tagName)) {
+                    selectedElement.appendChild(wrapper);
+                } else {
+                    // テキストや見出しなどが選択されている場合は、その要素の後ろに挿入
+                    selectedElement.after(wrapper);
+                }
+            } else {
+                // 何も選択されていない場合は、キャンバスの一番下に格納
+                canvas.appendChild(wrapper);
+            }
+            saveHistory();
+        }
+
         function addComponent(type) {
             let h = '';
             if(type==='h1') h='<h1>見出しを入力</h1>';
             if(type==='p') h='<p>テキストを入力...</p>';
             if(type==='header') h='<header style="background:#000;color:white;padding:20px;text-align:center;"><img src="HEADER.png" style="max-height:80px;"></header>';
             if(type==='footer') h='<footer style="background:#333;color:white;padding:20px;text-align:center;">&copy; 2026 MARIKO</footer>';
-            if(type==='layer') h='<div style="margin:20px;padding:20px;background:rgba(255,255,255,0.8);border-radius:10px;box-shadow:0 5px 15px rgba(0,0,0,0.1);"><h3>新規レイヤー</h3><p>ここに内容を配置</p></div>';
-            if(type==='layout') h='<div style="display:flex;gap:15px;margin:15px 0;"><div style="flex:1;border:1px dashed #ccc;padding:10px;">左カラム</div><div style="flex:1;border:1px dashed #ccc;padding:10px;">右カラム</div></div>';
+            // 改良：レイヤー自体のスタイルに min-height を持たせて、入れ子を視覚的に分かりやすく保持
+            if(type==='layer') h='<div style="margin:20px;padding:20px;background:rgba(255,255,255,0.8);border-radius:10px;box-shadow:0 5px 15px rgba(0,0,0,0.1);min-height:60px;"><h3>新規レイヤー</h3><p>ここに内容を配置</p></div>';
+            if(type==='layout') h='<div style="display:flex;gap:15px;margin:15px 0;"><div style="flex:1;border:1px dashed #ccc;padding:10px;min-height:50px;">左カラム</div><div style="flex:1;border:1px dashed #ccc;padding:10px;min-height:50px;">右カラム</div></div>';
             if(type==='btn') h='<a href="#" style="display:inline-block;padding:10px 20px;background:#E8380D;color:white;text-decoration:none;border-radius:5px;">ボタン</a>';
             if(type==='image') { const u=prompt("URL:"); if(u) h=`<img src="${u}" style="max-width:100%;">`; }
             if(type==='youtube') { const id=prompt("YouTube ID:"); if(id) h=`<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;"><iframe style="position:absolute;top:0;left:0;width:100%;height:100%;" src="https://www.youtube.com/embed/${id}" frameborder="0" allowfullscreen></iframe></div>`; }
             
             if(h) {
-                const wrapper = document.createElement('div');
-                wrapper.innerHTML = h + '<p><br></p>';
-                canvas.appendChild(wrapper);
-                saveHistory();
+                insertElementSmart(h);
             }
         }
 
@@ -253,7 +272,7 @@
         function setPageBg() { const u=prompt("背景画像URL:"); if(u) { canvas.style.backgroundImage = `url('${u}')`; canvas.style.backgroundSize = 'cover'; canvas.style.backgroundAttachment = 'fixed'; saveHistory(); } }
         function createLink() { const u=prompt("リンクURL:"); if(u) execCmd('createLink', u); }
 
-        // --- 右クリックメニュー (検証画像の問題を解消) ---
+        // --- 右クリックメニュー ---
         canvas.addEventListener('contextmenu', (e) => {
             e.preventDefault();
             const target = e.target;
@@ -270,7 +289,6 @@
             ctxMenu.style.left=e.pageX+'px'; ctxMenu.style.top=e.pageY+'px';
         });
 
-        // 修正：全体をクローンせず、選択した要素だけを狙い撃ち
         window.cloneTarget = () => {
             if(selectedElement) {
                 const clone = selectedElement.cloneNode(true);
@@ -281,7 +299,7 @@
             }
         };
 
-        window.deleteTarget = () => { if(selectedElement && confirm('削除しますか？')) { selectedElement.remove(); saveHistory(); ctxMenu.style.display='none'; } };
+        window.deleteTarget = () => { if(selectedElement && confirm('削除しますか？')) { selectedElement.remove(); selectedElement = null; saveHistory(); ctxMenu.style.display='none'; } };
         window.addRow = () => { const tr = selectedElement.closest('tr'); const n = tr.cloneNode(true); tr.after(n); saveHistory(); ctxMenu.style.display='none'; };
 
         // --- 左クリック：プロパティ連動 ---
@@ -295,6 +313,8 @@
                     editGroup.style.display = 'block';
                     document.getElementById('prop-text-input').value = selectedElement.innerText;
                 } else { editGroup.style.display = 'none'; }
+            } else {
+                selectedElement = null; // キャンバスの空欄クリックで選択解除
             }
             ctxMenu.style.display = 'none';
         });
