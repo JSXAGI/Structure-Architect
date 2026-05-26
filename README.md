@@ -1,4 +1,4 @@
-# 🚀 Structure-Architect v1.31
+# 🚀 Structure-Architect v2.0
 
 **〜 誰でも、どこでも、直感的に。Webサイト構築を加速させる万能型WYSIWYGエディタ 〜**
 
